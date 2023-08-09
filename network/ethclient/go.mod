@@ -2,7 +2,10 @@ module github.com/Alan-333333/simple-blockchain/network/ethclient
 
 go 1.20
 
-require github.com/ethereum/go-ethereum v1.12.0
+require (
+	github.com/ethereum/go-ethereum v1.12.0
+	github.com/google/uuid v1.3.0
+)
 
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
@@ -20,3 +23,4 @@ require (
 	golang.org/x/sys v0.7.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 )
+

@@ -4,120 +4,149 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"net/http"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/google/uuid"
 )
 
-// EthClient 封装以太坊客户端
+// EthClient wraps ethereum client for convenient use.
 type EthClient struct {
 	client *ethclient.Client
-	url    string // 节点URL
+	url    string // ethereum node URL
 }
 
-// NewEthClient 创建客户端
+// NewEthClient creates a new EthClient instance.
 func NewEthClient(url string) (*EthClient, error) {
-	// 初始化geth客户端
+
+	// Initialize geth client
 	client, err := ethclient.Dial(url)
 	if err != nil {
 		return nil, err
 	}
+
 	ec := &EthClient{
 		client: client,
 		url:    url,
 	}
+
 	return ec, nil
 }
 
-// GetLatestBlock 获取最新区块
-func (ec *EthClient) GetLatestBlock() (string, error) {
+// GetLatestBlockNumber retrieves the block number of the latest block.
+func (ec *EthClient) GetLatestBlockNumber() (uint64, error) {
+
 	header, err := ec.client.HeaderByNumber(context.Background(), nil)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
-	return header.Number.String(), nil
+	return header.Number.Uint64(), nil
 }
 
-func (c *EthClient) GetBalance(account common.Address) (*big.Int, error) {
-	return c.client.BalanceAt(context.Background(), account, nil)
+// GetBalance retrieves the balance of the given account address.
+func (ec *EthClient) GetBalance(account common.Address) (*big.Int, error) {
+
+	balance, err := ec.client.BalanceAt(context.Background(), account, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return balance, nil
+
 }
 
-func (c *EthClient) SendTransaction(tx *types.Transaction) error {
-	return c.client.SendTransaction(context.Background(), tx)
+// SendTransaction sends the given transaction to blockchain.
+func (ec *EthClient) SendTransaction(tx *types.Transaction) error {
+
+	err := ec.client.SendTransaction(context.Background(), tx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
-func (c *EthClient) GetTransaction(txHash common.Hash) (*types.Transaction, bool, error) {
-	return c.client.TransactionByHash(context.Background(), txHash)
+// GetTransactionByHash returns the transaction for the given hash.
+func (ec *EthClient) GetTransactionByHash(hash common.Hash) (*types.Transaction, bool, error) {
+
+	tx, pending, err := ec.client.TransactionByHash(context.Background(), hash)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return tx, pending, nil
 }
 
-func (c *EthClient) GetTransactionReceipt(txHash common.Hash) (*types.Receipt, error) {
-	return c.client.TransactionReceipt(context.Background(), txHash)
+// GetTransactionReceipt returns the receipt for the given transaction hash.
+func (ec *EthClient) GetTransactionReceipt(hash common.Hash) (*types.Receipt, error) {
+
+	receipt, err := ec.client.TransactionReceipt(context.Background(), hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return receipt, nil
 }
 
-func (c *EthClient) GetLogs(query ethereum.FilterQuery) ([]types.Log, error) {
-	return c.client.FilterLogs(context.Background(), query)
+// FilterLogs filters logs based on the given query.
+func (ec *EthClient) FilterLogs(query ethereum.FilterQuery) ([]types.Log, error) {
+
+	logs, err := ec.client.FilterLogs(context.Background(), query)
+	if err != nil {
+		return nil, err
+	}
+
+	return logs, nil
 }
 
-// EthClient中的rpcCall方法
-
+// rpcCall sends an JSON RPC request and parses the response.
 func (ec *EthClient) rpcCall(
-	ctx context.Context,
-	result interface{},
 	method string,
-	args ...interface{},
+	args []interface{},
+	result interface{},
 ) error {
 
-	// 构造请求
-	req := map[string]interface{}{
+	reqID := uuid.New()
+	// Construct request
+	reqBody := map[string]interface{}{
 		"jsonrpc": "2.0",
 		"method":  method,
 		"params":  args,
-		"id":      123,
+		"id":      reqID,
 	}
-	data, _ := json.Marshal(req)
 
-	// 发送请求
-	r, err := http.Post(ec.url, "application/json", bytes.NewReader(data))
+	reqData, err := json.Marshal(reqBody)
 	if err != nil {
 		return err
 	}
-	defer r.Body.Close()
 
-	// 解析响应
-	var resp map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&resp); err != nil {
+	// Send request
+	resp, err := http.Post(ec.url, "application/json", bytes.NewReader(reqData))
+	if err != nil {
 		return err
 	}
-	error := resp["error"]
+	defer resp.Body.Close()
+
+	// Parse response
+	var respBody map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&respBody); err != nil {
+		return err
+	}
+
+	error := respBody["error"]
 	if error != nil {
-		return err
+		return fmt.Errorf("%v", error)
 	}
 
-	// 设置结果
-	resultVal := resp["result"]
+	// Set result
+	result = respBody["result"]
 
-	switch r := result.(type) {
-	case *big.Int:
-		*r = *resultVal.(*big.Int)
-	case *types.Block:
-		*r = *resultVal.(*types.Block)
-	}
 	return nil
-}
-
-func toBlockNumArg(number *big.Int) string {
-	if number == nil {
-		return "latest"
-	}
-	pending := big.NewInt(-1)
-	if number.Cmp(pending) == 0 {
-		return "pending"
-	}
-	return hexutil.EncodeBig(number)
 }
