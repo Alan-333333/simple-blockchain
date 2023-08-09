@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-const URL = "https://eth-mainnet.g.alchemy.com/v2/lomkr9JTMgtizYfI_ZfvkVzxs_L_EvlZ"
+const URL = ""
 
 func main() {
 	client, err := ethclient.NewEthClient(URL)
