@@ -1,5 +1,7 @@
 package blockchain
 
+import "github.com/Alan-333333/simple-blockchain/tx"
+
 // Block结构体代表区块
 type Block struct {
 	// 版本号
@@ -24,15 +26,5 @@ type Block struct {
 	Hash []byte
 
 	// 该区块中的交易列表
-	Transactions []*Transaction
-}
-
-// Transaction结构体代表交易
-type Transaction struct {
-	// 发送者地址
-	From []byte
-	// 接收者地址
-	To []byte
-	// 转账金额
-	Value uint64
+	Transactions []*tx.Transaction
 }

@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+
+	"github.com/Alan-333333/simple-blockchain/tx"
 )
 
 const CURRENT_BLOCK_VERSION = 1
@@ -96,10 +98,10 @@ func isValidBlock(block *Block) bool {
 }
 
 // IsValidTransaction 交易合法性校验
-func IsValidTransaction(tx *Transaction) bool {
+func IsValidTransaction(tx *tx.Transaction) bool {
 
 	// 交易基本校验,Sender, Receiver, Value
-	if tx.From == nil || tx.To == nil {
+	if tx.Sender == "" || tx.Recipient == "" {
 		return false
 	}
 
