@@ -6,13 +6,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"os"
 	"time"
 
-	"github.com/Alan-333333/simple-blockchain/tx"
+	"github.com/Alan-333333/simple-blockchain/transaction"
+	"github.com/google/uuid"
 )
-
-const CURRENT_BLOCK_VERSION = 1
 
 type Blockchain struct {
 	blocks []*Block
@@ -98,7 +99,7 @@ func isValidBlock(block *Block) bool {
 }
 
 // IsValidTransaction 交易合法性校验
-func IsValidTransaction(tx *tx.Transaction) bool {
+func IsValidTransaction(tx *transaction.Transaction) bool {
 
 	// 交易基本校验,Sender, Receiver, Value
 	if tx.Sender == "" || tx.Recipient == "" {
@@ -183,4 +184,54 @@ func (bc *Blockchain) GetBlockByHeight(height int) *Block {
 	}
 
 	return bc.blocks[height]
+}
+
+// Save 将区块链序列化为文件
+func (bc *Blockchain) Save() error {
+
+	// 1. 将区块链序列化为字节数组
+	rawData, err := serialize(bc)
+	if err != nil {
+		return err
+	}
+
+	// 2. 将数据写入文件
+	uuid := uuid.New()
+	dbPath := "chain-" + uuid.String() + ".dat"
+	err = os.WriteFile(dbPath, rawData, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+// serialize 序列化区块链
+func serialize(bc *Blockchain) ([]byte, error) {
+	rawData, err := json.Marshal(bc)
+	if err != nil {
+		return nil, err
+	}
+
+	return rawData, nil
+}
+
+// LoadBlockchain 加载持久化的区块链
+func LoadBlockchain(file string) *Blockchain {
+
+	rawData, _ := ioutil.ReadFile(file)
+
+	bc := deserialize(rawData)
+
+	return bc
+}
+
+func deserialize(data []byte) *Blockchain {
+	var bc Blockchain
+	err := json.Unmarshal(data, &bc)
+	if err != nil {
+		panic(err)
+	}
+	return &bc
 }
