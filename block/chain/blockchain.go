@@ -1,4 +1,4 @@
-package block
+package blockchain
 
 import (
 	"bytes"
@@ -43,9 +43,6 @@ func (bc *Blockchain) AddBlock(block *Block) error {
 	// 获取上一个区块并设置上一个hash
 	prevBlock := bc.blocks[len(bc.blocks)-1]
 	block.PrevHash = prevBlock.Hash
-
-	// 计算新区块的hash
-	block.Hash = calcBlockHash(block)
 
 	// 添加区块
 	bc.blocks = append(bc.blocks, block)
@@ -118,7 +115,7 @@ func IsValidTransaction(tx *Transaction) bool {
 }
 
 // 计算区块hash
-func CalcBlockHash(block *Block) []byte {
+func calcBlockHash(block *Block) []byte {
 
 	// 1. 序列化区块数据
 	blockData, err := json.Marshal(block)

@@ -1,4 +1,4 @@
-package block
+package blockchain
 
 // Block结构体代表区块
 type Block struct {

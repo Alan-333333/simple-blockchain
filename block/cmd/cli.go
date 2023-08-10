@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/Alan-333333/simple-blockchain/block"
+	blockchain "github.com/Alan-333333/simple-blockchain/block/chain"
 )
 
 func printUsage() {
@@ -18,21 +18,21 @@ func printUsage() {
 	fmt.Println("  getblock [hash] - Prints a block")
 }
 
-func printBlockchain(chain *block.Blockchain) {
+func printBlockchain(chain *blockchain.Blockchain) {
 	blocks := chain.Blocks()
 	for _, block := range blocks {
 		printBlock(block)
 	}
 }
 
-func printBlock(block *block.Block) {
+func printBlock(block *blockchain.Block) {
 	fmt.Printf("Hash: %x\n", block.Hash)
 	// 打印区块其他信息
 	// ...
 }
 
 func main() {
-	bc := block.NewBlockchain()
+	bc := blockchain.NewBlockchain()
 
 	if len(os.Args) < 2 {
 		printUsage()
@@ -55,8 +55,8 @@ func main() {
 
 	case "createGenesisBlock":
 		// 1. 创建创世区块
-		genesisBlock := &block.Block{
-			Version:    block.CURRENT_BLOCK_VERSION,
+		genesisBlock := &blockchain.Block{
+			Version:    blockchain.CURRENT_BLOCK_VERSION,
 			PrevHash:   []byte{},
 			MerkleRoot: []byte{},
 			Timestamp:  uint64(time.Now().Unix()),
@@ -71,7 +71,7 @@ func main() {
 		}
 		// 4. 读取并反序列化
 		data, _ := os.ReadFile("genesis.blk")
-		var savedBlock block.Block
+		var savedBlock blockchain.Block
 		json.Unmarshal(data, &savedBlock)
 		// 5. 验证
 		if reflect.DeepEqual(genesisBlock, savedBlock) {
