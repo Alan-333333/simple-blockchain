@@ -17,26 +17,12 @@ client, err := ethclient.NewEthClient(endpoint)
 balance, err := client.GetBalance(account)
 ```
 
-
-### 命令行程序
-
-```bash
-$ ethclient --help
-Usage: 
-  ethclient [command]
-
-Commands:
-  balance <address>   Get balance for address
-  tx <hash>           Get transaction details by hash
-  receipt <hash>      Get transaction receipt by hash
-```
-
 ## 运行
 
-需要安装Go 1.9+
+需要安装Go 1.19+
 
 ```bash
-$ go run main.go <command>
+$ go run cmd/cli.go
 ```
 
 ## 开发
