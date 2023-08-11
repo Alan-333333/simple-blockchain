@@ -14,7 +14,7 @@ func main() {
 	privKey, pubKey := utils.GenerateKeyPair()
 
 	// 2. 创建交易
-	address := utils.PubKeyToAddress(pubKey)
+	address := utils.PubKeyToAddr(pubKey)
 
 	txs := transaction.NewTransaction(address, "receiver", 10)
 

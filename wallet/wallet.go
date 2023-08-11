@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -29,7 +28,6 @@ func NewWallet() *Wallet {
 	// 2. 从私钥计算公钥
 	pubKey := privKey.PublicKey
 
-	fmt.Println(pubKey)
 	// 3. 生成地址(公钥hash)
 	address := utils.PubKeyToAddr(&pubKey)
 
@@ -43,32 +41,6 @@ func NewWallet() *Wallet {
 
 func (w *Wallet) GetAddress() string {
 	return w.Address
-}
-
-func (w *Wallet) Sign(data []byte) string {
-
-	// 1. 对数据hash
-	hash := sha256.Sum256(data)
-
-	// 2. 签名
-	r, s, _ := ecdsa.Sign(rand.Reader, w.PrivateKey, hash[:])
-
-	// 3. 序列化签名
-	sig := fmt.Sprintf("%064x%064x", r, s)
-
-	return sig
-}
-
-func Verify(pubkey *ecdsa.PublicKey, data, sig string) bool {
-
-	// 1. 解析签名
-	r, s := utils.ParseSig(sig)
-
-	// 2. 对数据hash
-	hash := sha256.Sum256([]byte(data))
-
-	// 3. 验证签名
-	return ecdsa.Verify(pubkey, hash[:], r, s)
 }
 
 func (wallet *Wallet) Save() error {

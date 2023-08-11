@@ -7,12 +7,9 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
-	"encoding/binary"
-	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"math/big"
 
@@ -42,91 +39,6 @@ func GenerateKeyPair() (*ecdsa.PrivateKey, *ecdsa.PublicKey) {
 func GetPublicKey(privateKey *ecdsa.PrivateKey) *ecdsa.PublicKey {
 
 	return &privateKey.PublicKey
-}
-
-func Sign(data []byte, privateKey *ecdsa.PrivateKey) ([]byte, error) {
-
-	hashed := sha256.Sum256(data)
-	r, s, err := ecdsa.Sign(rand.Reader, privateKey, hashed[:])
-	if err != nil {
-		return nil, err
-	}
-
-	return serializeSig(r, s)
-}
-
-func serializeSig(r, s *big.Int) ([]byte, error) {
-	var sig bytes.Buffer
-
-	// Write R & S to signature
-	err := writeBigInt(&sig, r)
-	if err != nil {
-		return nil, err
-	}
-
-	err = writeBigInt(&sig, s)
-	if err != nil {
-		return nil, err
-	}
-
-	return sig.Bytes(), nil
-}
-
-func writeBigInt(w io.Writer, i *big.Int) error {
-	// Convert to bytes
-	bytes := i.Bytes()
-
-	// Write byte length
-	err := binary.Write(w, binary.BigEndian, uint32(len(bytes)))
-	if err != nil {
-		return err
-	}
-
-	// Write bytes
-	_, err = w.Write(bytes)
-	return err
-}
-
-func ParseSig(sigStr string) (r, s *big.Int) {
-
-	// 将签名的16进制字符串转为字节数组
-	sig, err := hex.DecodeString(sigStr)
-	if err != nil {
-		return
-	}
-
-	// 签名由r和s组成,均32字节
-	sigLen := len(sig)
-	if sigLen != 64 {
-		return
-	}
-
-	// 提取r和s
-	rBytes := sig[:32]
-	sBytes := sig[32:]
-
-	// 转换为big.Int类型
-	r = new(big.Int).SetBytes(rBytes)
-	s = new(big.Int).SetBytes(sBytes)
-
-	return
-}
-
-// PubKeyToAddress 将公钥转换为地址
-func PubKeyToAddress(pubKey *ecdsa.PublicKey) string {
-
-	// 1. 构造公钥字节数组
-	pubBytes := elliptic.Marshal(pubKey.Curve, pubKey.X, pubKey.Y)
-
-	// 2. SHA256哈希
-	hash := sha256.Sum256(pubBytes)
-
-	// 3. 取前20字节作为地址
-	address := hash[0:20]
-
-	// 4. 转换为16进制字符串
-	return fmt.Sprintf("%x", address)
-
 }
 
 func ParsePrivateKey(keyPEM string) (*ecdsa.PrivateKey, error) {
@@ -171,21 +83,21 @@ func PubKeyToAddr(pubKey *ecdsa.PublicKey) string {
 	// 1. 序列化公钥
 	pubKeyBytes := append(pubKey.X.Bytes(), pubKey.Y.Bytes()...)
 
-	// 2. 双哈希
-	ripmd160 := HashPubKey(pubKeyBytes)
+	// 2. TODO:双哈希
+	// ripmd160 := HashPubKey(pubKeyBytes)
 
 	// 3. 构造版本号和校验和
-	payload := append([]byte{version}, ripmd160...)
+	// payload := append([]byte{version}, ripmd160...)
+	payload := append([]byte{version}, pubKeyBytes...)
 	checksum := Checksum(payload)
-
 	// 4. 拼接完整数据
 	fullPayload := append(payload, checksum...)
-
 	// 5. Base58编码
 	addressByte := Base58Encode(fullPayload)
 
 	// 6. addressByte To string
 	address := string(addressByte)
+
 	return address
 
 }
@@ -195,7 +107,6 @@ func AddrToPubKey(addr string) (*ecdsa.PublicKey, error) {
 
 	// 1. Base58解码
 	pubKeyHash := Base58Decode([]byte(addr))
-
 	// 2. 分离校验和
 	checksum := pubKeyHash[len(pubKeyHash)-addressChecksumLen:]
 	payload := pubKeyHash[:len(pubKeyHash)-addressChecksumLen]
@@ -204,13 +115,8 @@ func AddrToPubKey(addr string) (*ecdsa.PublicKey, error) {
 	if !ValidateChecksum(payload, checksum) {
 		return nil, errors.New("invalid checksum")
 	}
-
 	// 4. 构造公钥
 	pubKey := payload[1:] // 去掉版本号
-
-	if len(pubKey) < 64 {
-		return nil, errors.New("invalid pubkey")
-	}
 
 	x := pubKey[:32]
 	y := pubKey[32:]

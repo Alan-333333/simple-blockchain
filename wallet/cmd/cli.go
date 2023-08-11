@@ -36,9 +36,13 @@ func simulate() {
 	pool.AddTx(tx)
 
 	newBlock := blockchain.NewBlock()
+	newBlock.Transactions = pool.Txs
 
 	bc := blockchain.NewBlockchain()
-	bc.AddBlock(newBlock)
+	err := bc.AddBlock(newBlock)
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	// 5. 模拟执行
 	fmt.Println("Transfer 10 coins from", walletA.GetAddress(), "to", walletB.GetAddress())
