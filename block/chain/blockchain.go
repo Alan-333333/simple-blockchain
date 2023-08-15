@@ -6,17 +6,22 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"time"
 
 	"github.com/Alan-333333/simple-blockchain/transaction"
+	"github.com/Alan-333333/simple-blockchain/wallet"
 	"github.com/google/uuid"
 )
 
+type Miner struct {
+	wallet *wallet.Wallet // 矿工钱包
+}
+
 type Blockchain struct {
 	blocks []*Block
+	miner  *Miner
 }
 
 // 创建区块链
@@ -51,14 +56,12 @@ func (bc *Blockchain) AddBlock(block *Block) error {
 
 	// 添加区块
 	bc.blocks = append(bc.blocks, block)
-
 	return nil
 }
 
 // 获取最后一个区块
 func (bc *Blockchain) GetLastBlock() *Block {
 	blocks := bc.blocks
-
 	// 区块链为空
 	if len(blocks) == 0 {
 		return nil
@@ -119,41 +122,80 @@ func IsValidTransaction(tx *transaction.Transaction) bool {
 
 }
 
-// 计算区块hash
-func calcBlockHash(block *Block) []byte {
+// 挖矿
+func (bc *Blockchain) Mine(pool *transaction.TxPool) {
+	for {
+		// 1.获取新的交易
+		txs := pool.GetTxs()
+		// 2. 创建新区块
+		block := createBlock(bc, txs)
 
-	// 1. 序列化区块数据
-	blockData, err := json.Marshal(block)
-	if err != nil {
-		panic("序列化区块数据失败")
+		// 3. 挖矿
+		doPoW(block)
+
+		// 4. 添加区块
+		err := bc.AddBlock(block)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
+}
 
-	// 2. 生成SHA256哈希
-	blockHash := sha256.Sum256(blockData)
+// 创建新区块
+func createBlock(bc *Blockchain, txs []*transaction.Transaction) *Block {
 
-	// 3. 返回字节数组
-	return blockHash[:]
+	prevBlock := bc.GetLastBlock()
+	block := NewBlock(prevBlock.Hash, prevBlock.Difficulty)
+	// 填充交易
+	block.Transactions = txs
+
+	return block
+
 }
 
 // 实现共识算法
-func RunConsensus(newBlock *Block) error {
+func doPoW(newBlock *Block) {
 
 	// 本地挖矿
-	for {
 
-		// 随机生成nonce值
-		nonce := rand.Int63()
-		newBlock.Nonce = make([]byte, 8)
-		binary.BigEndian.PutUint64(newBlock.Nonce, uint64(nonce))
+	// 随机生成nonce值
+	nonce := rand.Int63()
+	newBlock.Nonce = make([]byte, 8)
+	binary.BigEndian.PutUint64(newBlock.Nonce, uint64(nonce))
 
-		// 计算新的hash
-		newHash := calcBlockHash(newBlock)
+	// 计算新的hash
+	newHash := calcBlockHash(newBlock)
 
-		// 检查hash是否满足难度要求
-		if meetsDifficulty(newHash, newBlock.Difficulty) {
-			return nil
-		}
+	// 检查hash是否满足难度要求
+	if meetsDifficulty(newHash, newBlock.Difficulty) {
+		return
 	}
+
+	newBlock.Hash = newHash
+	// 难度递增
+	newBlock.Difficulty = newBlock.Difficulty + 1
+
+}
+
+// 计算区块hash
+func calcBlockHash(block *Block) []byte {
+
+	tsBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(tsBytes, block.Timestamp)
+	// 拼接区块数据
+	data := bytes.Join([][]byte{
+		block.PrevHash,
+		block.MerkleRoot,
+		tsBytes,
+	}, []byte{})
+
+	// 拼接nonce
+	data = append(data, block.Nonce...)
+
+	// 计算hash
+	hash := sha256.Sum256(data)
+	// 返回字节数组
+	return hash[:]
 
 }
 
@@ -165,6 +207,23 @@ func meetsDifficulty(hash []byte, difficulty uint64) bool {
 	return bytes.HasPrefix(hash, prefix)
 
 }
+
+// func getDifficultyPrefix(difficulty uint64) []byte {
+
+// 	// 难度控制0的位数
+// 	zeroNum := difficulty / 8
+
+// 	// 生成字节数组
+// 	prefix := make([]byte, zeroNum)
+
+// 	// 填充0
+// 	for i := 0; i < zeroNum; i++ {
+// 		prefix[i] = byte(0)
+// 	}
+
+// 	return prefix
+
+// }
 
 // 在区块链中根据hash获取区块
 func (bc *Blockchain) GetBlock(blockHash []byte) *Block {
@@ -222,7 +281,7 @@ func serialize(bc *Blockchain) ([]byte, error) {
 // LoadBlockchain 加载持久化的区块链
 func LoadBlockchain(file string) *Blockchain {
 
-	rawData, _ := ioutil.ReadFile(file)
+	rawData, _ := os.ReadFile(file)
 
 	bc := deserialize(rawData)
 

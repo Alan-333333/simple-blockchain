@@ -24,6 +24,12 @@ func (pool *TxPool) GetTx() *Transaction {
 	return tx
 }
 
+// 从池中获取交易
+func (pool *TxPool) GetTxs() []*Transaction {
+	// 后入先出
+	return pool.Txs
+}
+
 // 获取交易池大小
 func (pool *TxPool) Size() int {
 	return len(pool.Txs)

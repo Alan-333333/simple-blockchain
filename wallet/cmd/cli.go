@@ -32,17 +32,13 @@ func simulate() {
 		log.Fatal("Invalid transaction")
 	}
 
-	pool := transaction.NewTxPool()
-	pool.AddTx(tx)
-
-	newBlock := blockchain.NewBlock()
-	newBlock.Transactions = pool.Txs
-
 	bc := blockchain.NewBlockchain()
-	err := bc.AddBlock(newBlock)
-	if err != nil {
-		fmt.Println(err)
-	}
+
+	txPool := transaction.NewTxPool()
+	txPool.AddTx(tx)
+
+	// 4. 挖矿
+	go bc.Mine(txPool)
 
 	// 5. 模拟执行
 	fmt.Println("Transfer 10 coins from", walletA.GetAddress(), "to", walletB.GetAddress())
