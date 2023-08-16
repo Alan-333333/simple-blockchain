@@ -3,6 +3,7 @@ package p2p
 import (
 	"io"
 	"net"
+	"time"
 )
 
 type Peer struct {
@@ -47,11 +48,10 @@ func (p *Peer) ReadLoop() {
 			// 其他错误
 			continue
 		}
-
 		// 2. 解码消息
 		msg := DecodeMessage(data[:n])
 		// 3. 处理消息
-		HandleMessage(&msg)
+		HandleMessage(msg)
 
 		// 检查关闭状态
 		if isClosed(p.closed) {
@@ -96,5 +96,16 @@ func isClosed(ch chan bool) bool {
 }
 
 func (p *Peer) SendPing() {
-	p.sendQueue <- EncodeMessage(MsgTypePing, "ping")
+	data := []byte("ping")
+	p.sendQueue <- EncodeMessage(MsgTypePing, data)
+}
+
+func (p *Peer) TimerPing() {
+	lastPing := time.Now()
+	for {
+		if time.Now().Sub(lastPing) > PingInterval {
+			p.SendPing()
+			lastPing = time.Now()
+		}
+	}
 }

@@ -60,7 +60,6 @@ func (node *Node) Connect(ip string, port int) {
 	// 创建连接
 	conn, err := net.Dial("tcp", ip+":"+strconv.Itoa(port))
 	if err != nil {
-		fmt.Println(err)
 		log.Println("Connecting to peer failed:", err)
 		return
 	}
@@ -72,18 +71,19 @@ func (node *Node) Connect(ip string, port int) {
 
 // 将peer添加到节点的连接列表
 func (node *Node) handleConn(p *Peer) {
-	node.Server.peers[p.ID] = p
+	node.Server.Peers[p.ID] = p
 	p.start()
+	go p.TimerPing()
 }
 
 // 广播交易到网络
 func (node *Node) BroadcastTx(tx transaction.Transaction) {
 
 	// 构造消息体
-	msg := Message{
+	msg := &Message{
 		MsgType: MsgTypeTx,
 		Data:    EncodeMessage(MsgTypeTx, tx),
 	}
 	// 广播消息
-	node.Server.Broadcast(MsgTypeTx, &msg)
+	node.Server.Broadcast(MsgTypeTx, msg)
 }

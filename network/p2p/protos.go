@@ -82,7 +82,6 @@ func EncodeMessage(msgType int, data interface{}) []byte {
 	// 3. 对data进行编码
 	// 4. 返回编码后的消息内容
 	buf := new(bytes.Buffer)
-
 	binary.Write(buf, binary.LittleEndian, int64(msgType))
 
 	encoder := gob.NewEncoder(buf)
@@ -92,7 +91,7 @@ func EncodeMessage(msgType int, data interface{}) []byte {
 }
 
 // 解码消息内容
-func DecodeMessage(data []byte) Message {
+func DecodeMessage(data []byte) *Message {
 	// 1. 创建消息对象
 	// 2. 从data中解码消息类型
 	// 3. 根据类型解码data字段
@@ -102,7 +101,7 @@ func DecodeMessage(data []byte) Message {
 	var msgTypeInt int64
 	binary.Read(buf, binary.LittleEndian, &msgTypeInt)
 
-	msg := Message{MsgType: int(msgTypeInt)}
+	msg := &Message{MsgType: int(msgTypeInt)}
 
 	decoder := gob.NewDecoder(buf)
 	decoder.Decode(&msg.Data)
