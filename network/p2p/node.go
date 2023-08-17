@@ -2,11 +2,13 @@ package p2p
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"strconv"
 
+	blockchain "github.com/Alan-333333/simple-blockchain/block/chain"
 	"github.com/Alan-333333/simple-blockchain/transaction"
 )
 
@@ -51,7 +53,7 @@ func (node *Node) Listen() {
 	server := NewServer(node.Port)
 
 	server.SetOnTx(node.BroadcastTx)
-
+	server.SetOnBlock(node.BroadcastBlock)
 	server.Start()
 }
 
@@ -72,18 +74,25 @@ func (node *Node) Connect(ip string, port int) {
 // 将peer添加到节点的连接列表
 func (node *Node) handleConn(p *Peer) {
 	node.Server.Peers[p.ID] = p
+
+	go node.Server.readPeerMsg(p)
+
 	p.start()
 	go p.TimerPing()
 }
 
 // 广播交易到网络
-func (node *Node) BroadcastTx(tx transaction.Transaction) {
+func (node *Node) BroadcastTx(tx *transaction.Transaction) {
 
 	// 构造消息体
-	msg := &Message{
-		MsgType: MsgTypeTx,
-		Data:    EncodeMessage(MsgTypeTx, tx),
-	}
+	data, _ := json.Marshal(tx)
 	// 广播消息
-	node.Server.Broadcast(MsgTypeTx, msg)
+	node.Server.Broadcast(MsgTypeTx, data, nil)
+}
+
+// 广博区块信息到网络
+func (node *Node) BroadcastBlock(block *blockchain.Block) {
+
+	data, _ := json.Marshal(block)
+	node.Server.Broadcast(MsgTypeBlock, data, nil)
 }

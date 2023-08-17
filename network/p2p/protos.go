@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/gob"
+	"encoding/json"
+
+	blockchain "github.com/Alan-333333/simple-blockchain/block/chain"
+	"github.com/Alan-333333/simple-blockchain/transaction"
 )
 
 // 消息类型
@@ -107,4 +111,22 @@ func DecodeMessage(data []byte) *Message {
 	decoder.Decode(&msg.Data)
 
 	return msg
+}
+
+// 解码Transaction
+func DecodeTransaction(data []byte) (*transaction.Transaction, error) {
+
+	var tx transaction.Transaction
+	err := json.Unmarshal(data, &tx)
+	return &tx, err
+}
+
+// 解码Block
+func DecodeBlock(data []byte) (*blockchain.Block, error) {
+
+	var block blockchain.Block
+	err := json.Unmarshal(data, &block)
+
+	return &block, err
+
 }

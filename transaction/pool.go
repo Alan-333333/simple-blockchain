@@ -4,11 +4,23 @@ type TxPool struct {
 	Txs []*Transaction
 }
 
+var txPoolInstance *TxPool
+
 // 创建交易池
 func NewTxPool() *TxPool {
-	return &TxPool{
+
+	if txPoolInstance != nil {
+		return txPoolInstance
+	}
+	txPoolInstance = &TxPool{
 		Txs: make([]*Transaction, 0),
 	}
+
+	return txPoolInstance
+}
+
+func GetTxPool() *TxPool {
+	return txPoolInstance
 }
 
 // 添加新交易

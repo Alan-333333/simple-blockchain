@@ -15,6 +15,8 @@ import (
 	"github.com/google/uuid"
 )
 
+var blockchainInstance *Blockchain
+
 type Miner struct {
 	wallet *wallet.Wallet // 矿工钱包
 }
@@ -26,9 +28,19 @@ type Blockchain struct {
 
 // 创建区块链
 func NewBlockchain() *Blockchain {
-	return &Blockchain{
+	if blockchainInstance != nil {
+		return blockchainInstance
+	}
+	// ...初始化
+	blockchainInstance = &Blockchain{
 		blocks: []*Block{},
 	}
+
+	return blockchainInstance
+}
+
+func GetBlockchain() *Blockchain {
+	return blockchainInstance
 }
 
 // 返回区块链中所有的区块
@@ -44,7 +56,7 @@ func (bc *Blockchain) Blocks() []*Block {
 func (bc *Blockchain) AddBlock(block *Block) error {
 
 	// 验证新区块
-	if !isValidBlock(block) {
+	if !bc.IsValidBlock(block) {
 		return fmt.Errorf("block is not a valid block")
 	}
 
@@ -72,8 +84,8 @@ func (bc *Blockchain) GetLastBlock() *Block {
 }
 
 // 判断区块是否valid
-// isValidBlock 验证区块是否合法
-func isValidBlock(block *Block) bool {
+// IsValidBlock 验证区块是否合法
+func (bc *Blockchain) IsValidBlock(block *Block) bool {
 
 	// 基本参数校验
 	if block.Version != CURRENT_BLOCK_VERSION {
@@ -92,15 +104,12 @@ func isValidBlock(block *Block) bool {
 	}
 
 	// 验证区块Hash
-	// blockHash := calcBlockHash(block)
-	// if !bytes.Equal(blockHash, block.Hash) {
-	// 	return false
-	// }
+	blockHash := calcBlockHash(block)
+	return bytes.Equal(blockHash, block.Hash)
 
 	// 其他规则校验
 	// ...
 
-	return true
 }
 
 // IsValidTransaction 交易合法性校验
@@ -128,7 +137,7 @@ func (bc *Blockchain) Mine(pool *transaction.TxPool) {
 		// 1.获取新的交易
 		txs := pool.GetTxs()
 		// 2. 创建新区块
-		block := createBlock(bc, txs)
+		block := CreateBlock(bc, txs)
 
 		// 3. 挖矿
 		doPoW(block)
@@ -142,7 +151,7 @@ func (bc *Blockchain) Mine(pool *transaction.TxPool) {
 }
 
 // 创建新区块
-func createBlock(bc *Blockchain, txs []*transaction.Transaction) *Block {
+func CreateBlock(bc *Blockchain, txs []*transaction.Transaction) *Block {
 
 	prevBlock := bc.GetLastBlock()
 	block := NewBlock(prevBlock.Hash, prevBlock.Difficulty)

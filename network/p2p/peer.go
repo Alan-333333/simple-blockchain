@@ -13,6 +13,8 @@ type Peer struct {
 	// 发送队列
 	sendQueue chan []byte
 
+	msgChan chan *Message
+
 	// 关闭标志
 	closed chan bool
 }
@@ -23,6 +25,7 @@ func NewPeer(conn net.Conn) *Peer {
 		ID:        GeneratePeerID(),
 		Conn:      conn,
 		sendQueue: make(chan []byte),
+		msgChan:   make(chan *Message),
 		closed:    make(chan bool),
 	}
 }
@@ -51,8 +54,7 @@ func (p *Peer) ReadLoop() {
 		// 2. 解码消息
 		msg := DecodeMessage(data[:n])
 		// 3. 处理消息
-		HandleMessage(msg)
-
+		p.msgChan <- msg
 		// 检查关闭状态
 		if isClosed(p.closed) {
 			break
@@ -108,4 +110,10 @@ func (p *Peer) TimerPing() {
 			lastPing = time.Now()
 		}
 	}
+}
+
+func (p *Peer) SendVersion() {
+	myVersion := Version{Version: 1, BestHeight: 1, AddrFrom: "test"}
+	enVersion := EncodeVersion(myVersion)
+	p.Conn.Write(EncodeMessage(MsgTypeVersion, enVersion))
 }
