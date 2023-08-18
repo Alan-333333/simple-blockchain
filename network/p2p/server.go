@@ -106,6 +106,7 @@ func (s *Server) handleMessage(msg *Message, readPeer *Peer) {
 	case MsgTypeTx:
 		// 处理Tx
 		tx, err := DecodeTransaction(msg.Data)
+		fmt.Println("tx", tx)
 		if err != nil {
 			return
 		}
@@ -113,7 +114,6 @@ func (s *Server) handleMessage(msg *Message, readPeer *Peer) {
 		if !tx.IsValid() {
 			return
 		}
-
 		// 添加到交易池
 		txPool := transaction.GetTxPool()
 		txPool.AddTx(tx)
@@ -126,6 +126,7 @@ func (s *Server) handleMessage(msg *Message, readPeer *Peer) {
 		// 解码
 		block, err := DecodeBlock(msg.Data)
 
+		fmt.Println("block", block)
 		if err != nil {
 			return
 		}

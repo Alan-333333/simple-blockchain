@@ -2,13 +2,9 @@ package blockchain
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/Alan-333333/simple-blockchain/transaction"
 	"github.com/Alan-333333/simple-blockchain/wallet"
@@ -22,18 +18,20 @@ type Miner struct {
 }
 
 type Blockchain struct {
-	blocks []*Block
-	miner  *Miner
+	blocks    []*Block
+	miner     *Miner
+	consensus Consensus
 }
 
 // 创建区块链
-func NewBlockchain() *Blockchain {
+func NewBlockchain(consensus Consensus) *Blockchain {
 	if blockchainInstance != nil {
 		return blockchainInstance
 	}
 	// ...初始化
 	blockchainInstance = &Blockchain{
-		blocks: []*Block{},
+		blocks:    []*Block{},
+		consensus: consensus,
 	}
 
 	return blockchainInstance
@@ -86,30 +84,7 @@ func (bc *Blockchain) GetLastBlock() *Block {
 // 判断区块是否valid
 // IsValidBlock 验证区块是否合法
 func (bc *Blockchain) IsValidBlock(block *Block) bool {
-
-	// 基本参数校验
-	if block.Version != CURRENT_BLOCK_VERSION {
-		return false
-	}
-
-	if block.Timestamp > uint64(time.Now().Unix()) {
-		return false
-	}
-
-	// 验证交易的合法性
-	for _, tx := range block.Transactions {
-		if !IsValidTransaction(tx) {
-			return false
-		}
-	}
-
-	// 验证区块Hash
-	blockHash := calcBlockHash(block)
-	return bytes.Equal(blockHash, block.Hash)
-
-	// 其他规则校验
-	// ...
-
+	return bc.consensus.VerifyBlock(block)
 }
 
 // IsValidTransaction 交易合法性校验
@@ -140,7 +115,11 @@ func (bc *Blockchain) Mine(pool *transaction.TxPool) {
 		block := CreateBlock(bc, txs)
 
 		// 3. 挖矿
-		doPoW(block)
+		// doPoW(block)
+		bc.consensus.GenerateBlock(block)
+
+		// 填充交易
+		block.Transactions = txs
 
 		// 4. 添加区块
 		err := bc.AddBlock(block)
@@ -150,89 +129,21 @@ func (bc *Blockchain) Mine(pool *transaction.TxPool) {
 	}
 }
 
+func NewEmptyBlock(bc *Blockchain) *Block {
+	prevBlock := bc.GetLastBlock()
+	block := NewBlock(prevBlock.Hash, prevBlock.Difficulty)
+	return block
+}
+
 // 创建新区块
 func CreateBlock(bc *Blockchain, txs []*transaction.Transaction) *Block {
 
 	prevBlock := bc.GetLastBlock()
 	block := NewBlock(prevBlock.Hash, prevBlock.Difficulty)
-	// 填充交易
-	block.Transactions = txs
 
 	return block
 
 }
-
-// 实现共识算法
-func doPoW(newBlock *Block) {
-
-	// 本地挖矿
-
-	// 随机生成nonce值
-	nonce := rand.Int63()
-	newBlock.Nonce = make([]byte, 8)
-	binary.BigEndian.PutUint64(newBlock.Nonce, uint64(nonce))
-
-	// 计算新的hash
-	newHash := calcBlockHash(newBlock)
-
-	// 检查hash是否满足难度要求
-	if meetsDifficulty(newHash, newBlock.Difficulty) {
-		return
-	}
-
-	newBlock.Hash = newHash
-	// 难度递增
-	newBlock.Difficulty = newBlock.Difficulty + 1
-
-}
-
-// 计算区块hash
-func calcBlockHash(block *Block) []byte {
-
-	tsBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(tsBytes, block.Timestamp)
-	// 拼接区块数据
-	data := bytes.Join([][]byte{
-		block.PrevHash,
-		block.MerkleRoot,
-		tsBytes,
-	}, []byte{})
-
-	// 拼接nonce
-	data = append(data, block.Nonce...)
-
-	// 计算hash
-	hash := sha256.Sum256(data)
-	// 返回字节数组
-	return hash[:]
-
-}
-
-func meetsDifficulty(hash []byte, difficulty uint64) bool {
-
-	// 简单检查hash的前n位是否为0
-	// n由difficulty决定
-	prefix := bytes.Repeat([]byte{0}, int(difficulty/8))
-	return bytes.HasPrefix(hash, prefix)
-
-}
-
-// func getDifficultyPrefix(difficulty uint64) []byte {
-
-// 	// 难度控制0的位数
-// 	zeroNum := difficulty / 8
-
-// 	// 生成字节数组
-// 	prefix := make([]byte, zeroNum)
-
-// 	// 填充0
-// 	for i := 0; i < zeroNum; i++ {
-// 		prefix[i] = byte(0)
-// 	}
-
-// 	return prefix
-
-// }
 
 // 在区块链中根据hash获取区块
 func (bc *Blockchain) GetBlock(blockHash []byte) *Block {

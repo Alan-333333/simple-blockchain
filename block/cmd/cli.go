@@ -32,7 +32,8 @@ func printBlock(block *blockchain.Block) {
 }
 
 func main() {
-	bc := blockchain.NewBlockchain()
+	pow := &blockchain.POW{}
+	bc := blockchain.NewBlockchain(pow)
 
 	if len(os.Args) < 2 {
 		printUsage()

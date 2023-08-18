@@ -5,6 +5,7 @@ import (
 	"log"
 
 	blockchain "github.com/Alan-333333/simple-blockchain/block/chain"
+
 	"github.com/Alan-333333/simple-blockchain/transaction"
 	"github.com/Alan-333333/simple-blockchain/wallet"
 )
@@ -32,7 +33,8 @@ func simulate() {
 		log.Fatal("Invalid transaction")
 	}
 
-	bc := blockchain.NewBlockchain()
+	pow := &blockchain.POW{}
+	bc := blockchain.NewBlockchain(pow)
 
 	txPool := transaction.NewTxPool()
 	txPool.AddTx(tx)

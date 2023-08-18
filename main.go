@@ -9,7 +9,8 @@ import (
 func main() {
 
 	// 区块和交易
-	bc := blockchain.NewBlockchain()
+	pow := &blockchain.POW{}
+	bc := blockchain.NewBlockchain(pow)
 	txPool := transaction.NewTxPool()
 
 	go bc.Mine(txPool)
