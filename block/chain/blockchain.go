@@ -3,13 +3,17 @@ package blockchain
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/Alan-333333/simple-blockchain/transaction"
 	"github.com/Alan-333333/simple-blockchain/wallet"
-	"github.com/google/uuid"
 )
+
+// 定义保存的文件名
+const chainFile = "./dat/blockchain/chain.dat"
 
 var blockchainInstance *Blockchain
 
@@ -111,9 +115,14 @@ func (bc *Blockchain) Mine(pool *transaction.TxPool) {
 	for {
 		// 1.获取新的交易
 		txs := pool.GetTxs()
+		if len(txs) == 0 {
+			continue
+		}
 		// 2. 创建新区块
 		block := CreateBlock(bc, txs)
-
+		if block == nil {
+			continue
+		}
 		// 3. 挖矿
 		// doPoW(block)
 		bc.consensus.GenerateBlock(block)
@@ -126,6 +135,8 @@ func (bc *Blockchain) Mine(pool *transaction.TxPool) {
 		if err != nil {
 			fmt.Println(err)
 		}
+
+		bc.Save()
 	}
 }
 
@@ -139,10 +150,11 @@ func NewEmptyBlock(bc *Blockchain) *Block {
 func CreateBlock(bc *Blockchain, txs []*transaction.Transaction) *Block {
 
 	prevBlock := bc.GetLastBlock()
-	block := NewBlock(prevBlock.Hash, prevBlock.Difficulty)
-
-	return block
-
+	if prevBlock != nil {
+		block := NewBlock(prevBlock.Hash, prevBlock.Difficulty)
+		return block
+	}
+	return nil
 }
 
 // 在区块链中根据hash获取区块
@@ -170,18 +182,81 @@ func (bc *Blockchain) GetBlockByHeight(height int) *Block {
 // Save 将区块链序列化为文件
 func (bc *Blockchain) Save() error {
 
-	// 1. 将区块链序列化为字节数组
+	// 1. 序列化区块链
 	rawData, err := serialize(bc)
 	if err != nil {
 		return err
 	}
 
-	// 2. 将数据写入文件
-	uuid := uuid.New()
-	dbPath := "chain-" + uuid.String() + ".dat"
-	err = os.WriteFile(dbPath, rawData, 0644)
+	// 2. 创建保存目录
+	err = os.MkdirAll(filepath.Dir(chainFile), 0700)
 	if err != nil {
 		return err
+	}
+
+	// 3. 保存数据和元数据
+	err = os.WriteFile(chainFile, rawData, 0644)
+	if err != nil {
+		return err
+	}
+
+	// 4. 保存元数据
+	meta := bc.GetMetadata()
+	err = meta.Save()
+
+	return err
+}
+
+// Load 加载区块链
+func LoadBlockchain() (*Blockchain, error) {
+
+	// 1. 读取序列化数据
+	raw, err := os.ReadFile(chainFile)
+	if err != nil {
+		return nil, err
+	}
+	// 2. 反序列化
+	bc, _ := deserialize(raw)
+
+	meta := bc.GetMetadata()
+	// 3. 校验元数据的完整性
+	err = bc.VerifyMetadata(meta)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return bc, nil
+
+}
+
+// GetMetadata 获取元数据
+func (bc *Blockchain) GetMetadata() *BlockchainMetadata {
+
+	meta := &BlockchainMetadata{}
+
+	if len(bc.blocks) > 0 {
+		lastBlock := bc.blocks[len(bc.blocks)-1]
+		meta.LastBlockHash = lastBlock.Hash
+		meta.BlockCount = len(bc.blocks)
+	}
+
+	return meta
+}
+
+// VerifyMetadata 验证元数据
+func (bc *Blockchain) VerifyMetadata(meta *BlockchainMetadata) error {
+
+	// 检查最后一个区块的hash
+	lastBlockHash := bc.blocks[len(bc.blocks)-1].Hash
+
+	if !bytes.Equal(meta.LastBlockHash, lastBlockHash) {
+		return errors.New("last block hash mismatch")
+	}
+
+	// 检查区块数量
+	if meta.BlockCount != len(bc.blocks) {
+		return errors.New("block count mismatch")
 	}
 
 	return nil
@@ -190,29 +265,29 @@ func (bc *Blockchain) Save() error {
 
 // serialize 序列化区块链
 func serialize(bc *Blockchain) ([]byte, error) {
-	rawData, err := json.Marshal(bc)
-	if err != nil {
+	return json.Marshal(&struct {
+		Blocks []*Block `json:"blocks"`
+		Miner  *Miner   `json:"miner"`
+	}{
+		Blocks: bc.blocks,
+		Miner:  bc.miner,
+	})
+}
+
+func deserialize(data []byte) (*Blockchain, error) {
+	var raw struct {
+		Blocks []*Block
+		Miner  *Miner
+	}
+
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, err
 	}
 
-	return rawData, nil
-}
-
-// LoadBlockchain 加载持久化的区块链
-func LoadBlockchain(file string) *Blockchain {
-
-	rawData, _ := os.ReadFile(file)
-
-	bc := deserialize(rawData)
-
-	return bc
-}
-
-func deserialize(data []byte) *Blockchain {
-	var bc Blockchain
-	err := json.Unmarshal(data, &bc)
-	if err != nil {
-		panic(err)
+	bc := &Blockchain{
+		blocks: raw.Blocks,
+		miner:  raw.Miner,
 	}
-	return &bc
+
+	return bc, nil
 }

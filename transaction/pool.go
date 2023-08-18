@@ -36,9 +36,8 @@ func (pool *TxPool) GetTx() *Transaction {
 	return tx
 }
 
-// 从池中获取交易
+// 获取交易池
 func (pool *TxPool) GetTxs() []*Transaction {
-	// 后入先出
 	return pool.Txs
 }
 

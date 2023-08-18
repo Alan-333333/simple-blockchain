@@ -80,6 +80,8 @@ func main() {
 		}
 		// 6. 添加到区块链
 		bc.AddBlock(genesisBlock)
+
+		bc.Save()
 	default:
 		printUsage()
 		os.Exit(1)

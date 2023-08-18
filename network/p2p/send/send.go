@@ -29,6 +29,12 @@ func main() {
 	walletA := wallet.NewWallet()
 	walletB := wallet.NewWallet()
 
+	walletA.Save()
+	walletB.Save()
+
+	node.BroadcastWallet(walletA)
+	node.BroadcastWallet(walletB)
+
 	// 2. 构造交易
 	tx := transaction.NewTransaction(walletA.GetAddress(), walletB.GetAddress(), 10)
 

@@ -7,6 +7,7 @@ import (
 
 	blockchain "github.com/Alan-333333/simple-blockchain/block/chain"
 	"github.com/Alan-333333/simple-blockchain/transaction"
+	"github.com/Alan-333333/simple-blockchain/wallet"
 )
 
 const PingInterval = 1 * time.Second
@@ -128,21 +129,35 @@ func (s *Server) handleMessage(msg *Message, readPeer *Peer) {
 
 		fmt.Println("block", block)
 		if err != nil {
+			fmt.Println(err)
 			return
 		}
 		// 校验
 		if !bc.IsValidBlock(block) {
+			fmt.Println("IsValidBlock")
 			return
 		}
 
 		// 添加到区块链
 		bc.AddBlock(block)
 
+		bc.Save()
+
 		// 广播给其他节点
 		s.Broadcast(MsgTypeBlock, msg.Data, readPeer)
+	case MsgTypeWallet:
+		fmt.Println("MsgTypeWallet")
+		wallet, err := wallet.DecodeWallet(msg.Data)
+		fmt.Println("wallet", wallet)
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		wallet.Save()
 
 	case MsgTypePing:
-		fmt.Println("MsgTypePing:", string(msg.Data))
+		return
 	}
 }
 

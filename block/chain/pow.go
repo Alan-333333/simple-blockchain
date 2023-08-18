@@ -18,7 +18,7 @@ func (pow *POW) GenerateBlock(newBlock *Block) {
 	binary.BigEndian.PutUint64(newBlock.Nonce, uint64(nonce))
 
 	// 计算新的hash
-	newHash := pow.CalcBlockHash(newBlock)
+	newHash := CalcBlockHash(newBlock)
 
 	// 检查hash是否满足难度要求
 	if meetsDifficulty(newHash, newBlock.Difficulty) {
@@ -48,7 +48,7 @@ func (p *POW) VerifyBlock(block *Block) bool {
 	}
 
 	// 验证区块Hash
-	blockHash := p.CalcBlockHash(block)
+	blockHash := CalcBlockHash(block)
 	return bytes.Equal(blockHash, block.Hash)
 }
 
@@ -62,7 +62,7 @@ func meetsDifficulty(hash []byte, difficulty uint64) bool {
 }
 
 // 计算区块hash
-func (pow *POW) CalcBlockHash(block *Block) []byte {
+func CalcBlockHash(block *Block) []byte {
 	tsBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(tsBytes, block.Timestamp)
 	// 拼接区块数据

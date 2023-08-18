@@ -10,6 +10,7 @@ import (
 
 	blockchain "github.com/Alan-333333/simple-blockchain/block/chain"
 	"github.com/Alan-333333/simple-blockchain/transaction"
+	"github.com/Alan-333333/simple-blockchain/wallet"
 )
 
 type Node struct {
@@ -95,4 +96,11 @@ func (node *Node) BroadcastBlock(block *blockchain.Block) {
 
 	data, _ := json.Marshal(block)
 	node.Server.Broadcast(MsgTypeBlock, data, nil)
+}
+
+// 广博钱包信息到网络
+func (node *Node) BroadcastWallet(w *wallet.Wallet) {
+
+	encodeWallet, _ := wallet.EncodedWallet(w)
+	node.Server.Broadcast(MsgTypeWallet, encodeWallet, nil)
 }

@@ -15,7 +15,8 @@ const (
 	MsgTypeVersion = 1
 	MsgTypeTx      = 2
 	MsgTypeBlock   = 3
-	MsgTypePing    = 4
+	MsgTypeWallet  = 4
+	MsgTypePing    = 999
 )
 
 // 版本消息

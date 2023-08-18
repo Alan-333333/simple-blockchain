@@ -39,6 +39,8 @@ type Block struct {
 	Transactions []*transaction.Transaction
 }
 
+const genesisFile = "./dat/blockchain/genesis.blk"
+
 func NewBlock(prevHash []byte, prevDiffculty uint64) *Block {
 	return &Block{
 		PrevHash:   prevHash,
@@ -53,12 +55,12 @@ func (block *Block) Save() {
 	// 2. 序列化
 	blockData, _ := json.Marshal(block)
 	// 3. 存储到文件
-	err := os.WriteFile("genesis.blk", blockData, 0644)
+	err := os.WriteFile(genesisFile, blockData, 0644)
 	if err != nil {
 		// 错误处理
 	}
 	// 4. 读取并反序列化
-	data, _ := os.ReadFile("genesis.blk")
+	data, _ := os.ReadFile(genesisFile)
 	var savedBlock Block
 	json.Unmarshal(data, &savedBlock)
 	// 5. 验证
@@ -76,15 +78,16 @@ func CreateGenesisBlock() *Block {
 		Timestamp:  uint64(time.Now().Unix()),
 		// 其他字段
 	}
+	genesisBlock.Hash = CalcBlockHash(genesisBlock)
 	// 2. 序列化
 	blockData, _ := json.Marshal(genesisBlock)
 	// 3. 存储到文件
-	err := os.WriteFile("genesis.blk", blockData, 0644)
+	err := os.WriteFile(genesisFile, blockData, 0644)
 	if err != nil {
 		// 错误处理
 	}
 	// 4. 读取并反序列化
-	data, _ := os.ReadFile("genesis.blk")
+	data, _ := os.ReadFile(genesisFile)
 	var savedBlock Block
 	json.Unmarshal(data, &savedBlock)
 	// 5. 验证
