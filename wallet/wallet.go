@@ -66,7 +66,7 @@ func (wallet *Wallet) Save() error {
 
 }
 
-// 查询地址余额
+// 查询钱包
 func GetwalletByAddress(address string) *Wallet {
 
 	// 1. 打开钱包文件

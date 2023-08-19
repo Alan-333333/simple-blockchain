@@ -51,11 +51,7 @@ func NewNode(ip string, port int) *Node {
 // 节点连接到网络
 func (node *Node) Listen() {
 	// 调用p2p/server的Listen启动监听
-	server := NewServer(node.Port)
-
-	server.SetOnTx(node.BroadcastTx)
-	server.SetOnBlock(node.BroadcastBlock)
-	server.Start()
+	node.Server.Start()
 }
 
 // 节点连接到peer
@@ -75,6 +71,8 @@ func (node *Node) Connect(ip string, port int) {
 // 将peer添加到节点的连接列表
 func (node *Node) handleConn(p *Peer) {
 	node.Server.Peers[p.ID] = p
+
+	node.Server.AddPeer(p)
 
 	go node.Server.readPeerMsg(p)
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 )
 
 const CURRENT_BLOCK_VERSION = 1
+const BASE_BLOCK_DIFFCULTY = 1
 
 // Block结构体代表区块
 type Block struct {
@@ -76,15 +78,24 @@ func CreateGenesisBlock() *Block {
 		PrevHash:   []byte{},
 		MerkleRoot: []byte{},
 		Timestamp:  uint64(time.Now().Unix()),
+		Difficulty: BASE_BLOCK_DIFFCULTY,
 		// 其他字段
 	}
-	genesisBlock.Hash = CalcBlockHash(genesisBlock)
+	pow := new(POW)
+	pow.GenerateBlock(genesisBlock)
 	// 2. 序列化
 	blockData, _ := json.Marshal(genesisBlock)
+	// 2. 创建保存目录
+	err := os.MkdirAll(filepath.Dir(genesisFile), 0700)
+	if err != nil {
+		return nil
+	}
+
 	// 3. 存储到文件
-	err := os.WriteFile(genesisFile, blockData, 0644)
+	err = os.WriteFile(genesisFile, blockData, 0644)
 	if err != nil {
 		// 错误处理
+		return nil
 	}
 	// 4. 读取并反序列化
 	data, _ := os.ReadFile(genesisFile)

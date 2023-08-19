@@ -114,7 +114,7 @@ func IsValidTransaction(tx *transaction.Transaction) bool {
 func (bc *Blockchain) Mine(pool *transaction.TxPool) {
 	for {
 		// 1.获取新的交易
-		txs := pool.GetTxs()
+		txs := pool.PopTransactions(1)
 		if len(txs) == 0 {
 			continue
 		}
@@ -135,6 +135,8 @@ func (bc *Blockchain) Mine(pool *transaction.TxPool) {
 		if err != nil {
 			fmt.Println(err)
 		}
+
+		pool.RemoveTransactions(txs)
 
 		bc.Save()
 	}

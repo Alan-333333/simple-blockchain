@@ -24,6 +24,7 @@ func printUsage() {
 	fmt.Println("  getwalletbalance [address] - Get wallet balance by address")
 	fmt.Println("  send -fromAddress  [address] -toAddress [address] -amount [amount] - Send blockchain transaction")
 	fmt.Println("  nodeConnect [IP] [Port]- Connect node")
+	fmt.Println("  addwalletBalance [address] [amount] - Add balance fo address")
 	fmt.Println()
 }
 
@@ -81,11 +82,7 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 		case "printBlockChain":
 			printBlockchain(bc)
 		case "getblock":
-			if len(os.Args) < 3 {
-				printUsage()
-				os.Exit(1)
-			}
-			hash := os.Args[2]
+			hash := args[1]
 			block := bc.GetBlock([]byte(hash))
 			printBlock(block)
 
@@ -102,12 +99,16 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 
 			fmt.Println("success")
 
+		case "printNodePeers":
+			fmt.Println("peers", node.Server.Peers)
+
 		case "createwallet":
 			wallet := wallet.NewWallet()
 			wallet.Save()
+			fmt.Println("peers", node.Server.Peers)
 			node.BroadcastWallet(wallet)
-
 			fmt.Println("success wallet address:", wallet.Address)
+
 		case "nodeConnect":
 			ip := args[1]
 			portStr := args[2]
@@ -122,6 +123,17 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 			balance := wallet.GetAddressBalance(address)
 			fmt.Println("success wallet balance:", balance)
 
+		case "addwalletBalance":
+			address := args[1]
+
+			amountStr := args[2]
+			amountFloat, _ := strconv.ParseFloat(amountStr, 32)
+			wallet := wallet.GetwalletByAddress(address)
+			wallet.Balance += amountFloat
+
+			wallet.Save()
+			node.BroadcastWallet(wallet)
+			fmt.Println("success")
 		case "send":
 			// 获取fromAddress参数值
 			fromAddress := args[2]
@@ -146,8 +158,8 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 			node.BroadcastTx(tx)
 
 			// 6. 更新余额
-			walletFrom.Balance -= 10
-			walletTo.Balance += 10
+			walletFrom.Balance -= amountFloat
+			walletTo.Balance += amountFloat
 
 			walletFrom.Save()
 			walletTo.Save()

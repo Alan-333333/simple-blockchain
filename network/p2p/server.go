@@ -3,6 +3,7 @@ package p2p
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	blockchain "github.com/Alan-333333/simple-blockchain/block/chain"
@@ -15,11 +16,8 @@ const PingInterval = 1 * time.Second
 type Server struct {
 	port int
 
-	Peers map[string]*Peer
-
-	onTx func(*transaction.Transaction)
-
-	onBlock func(*blockchain.Block)
+	Peers    map[string]*Peer
+	peerLock sync.Mutex
 }
 
 func NewServer(port int) *Server {
@@ -42,6 +40,7 @@ func (s *Server) Start() {
 		}
 		peer := NewPeer(conn)
 		go s.onConnect(peer)
+
 	}
 }
 
@@ -55,7 +54,7 @@ func (s *Server) onConnect(peer *Peer) {
 	peer.SendVersion()
 
 	// 3. 添加到peers
-	s.Peers[peer.ID] = peer
+	s.AddPeer(peer)
 
 	// 4. 启动peer
 	peer.start()
@@ -66,24 +65,36 @@ func (s *Server) onConnect(peer *Peer) {
 	// 6.监听消息
 	go s.readPeerMsg(peer)
 
-	fmt.Println("peers", s.Peers)
 }
 
-func (s *Server) SetOnTx(callback func(*transaction.Transaction)) {
-	s.onTx = callback
+func (s *Server) AddPeer(peer *Peer) {
+
+	s.peerLock.Lock()
+	defer s.peerLock.Unlock()
+
+	s.Peers[peer.ID] = peer
 }
 
-func (s *Server) SetOnBlock(callback func(block *blockchain.Block)) {
-	s.onBlock = callback
+func (s *Server) GetPeers() map[string]*Peer {
+	s.peerLock.Lock()
+	defer s.peerLock.Unlock()
+
+	peers := make(map[string]*Peer, len(s.Peers))
+	for k, v := range s.Peers {
+		peers[k] = v
+	}
+	return peers
 }
 
 // 广播消息到所有peers
 func (s *Server) Broadcast(msgType int, data interface{}, readPeer *Peer) {
-	for _, peer := range s.Peers {
+	peers := s.GetPeers()
+	for _, peer := range peers {
 		// 过滤接收方peer，防止循环广播
 		if readPeer != nil && readPeer.ID == peer.ID {
 			continue
 		}
+
 		peer.Send(EncodeMessage(msgType, data))
 	}
 }
@@ -101,13 +112,15 @@ func (s *Server) handleMessage(msg *Message, readPeer *Peer) {
 	switch msg.MsgType {
 	case MsgTypeVersion:
 		// 处理版本
+		// 增加版本校验逻辑
 		version := DecodeVersion(msg.Data)
-		fmt.Println("version:", version)
-
+		if version.Version != VERSION {
+			delete(s.Peers, readPeer.ID)
+		}
+		return
 	case MsgTypeTx:
 		// 处理Tx
 		tx, err := DecodeTransaction(msg.Data)
-		fmt.Println("tx", tx)
 		if err != nil {
 			return
 		}
@@ -127,14 +140,12 @@ func (s *Server) handleMessage(msg *Message, readPeer *Peer) {
 		// 解码
 		block, err := DecodeBlock(msg.Data)
 
-		fmt.Println("block", block)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		// 校验
 		if !bc.IsValidBlock(block) {
-			fmt.Println("IsValidBlock")
 			return
 		}
 
@@ -146,30 +157,18 @@ func (s *Server) handleMessage(msg *Message, readPeer *Peer) {
 		// 广播给其他节点
 		s.Broadcast(MsgTypeBlock, msg.Data, readPeer)
 	case MsgTypeWallet:
-		fmt.Println("MsgTypeWallet")
 		wallet, err := wallet.DecodeWallet(msg.Data)
-		fmt.Println("wallet", wallet)
 
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+
 		wallet.Save()
+
+		s.Broadcast(MsgTypeWallet, msg.Data, readPeer)
 
 	case MsgTypePing:
 		return
-	}
-}
-
-// 广播时调用
-func (s *Server) BroadcastTx(tx *transaction.Transaction) {
-	if s.onTx != nil {
-		s.onTx(tx)
-	}
-}
-
-func (s *Server) BroadcastBlock(block *blockchain.Block) {
-	if s.onBlock != nil {
-		s.onBlock(block)
 	}
 }

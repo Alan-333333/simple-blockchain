@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const VERSION = 1
+
 type Peer struct {
 	ID   string
 	Conn net.Conn
@@ -113,7 +115,7 @@ func (p *Peer) TimerPing() {
 }
 
 func (p *Peer) SendVersion() {
-	myVersion := Version{Version: 1, BestHeight: 1, AddrFrom: "test"}
+	myVersion := Version{Version: VERSION, BestHeight: 1, AddrFrom: "test"}
 	enVersion := EncodeVersion(myVersion)
 	p.Conn.Write(EncodeMessage(MsgTypeVersion, enVersion))
 }

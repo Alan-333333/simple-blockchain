@@ -56,3 +56,37 @@ func (pool *TxPool) Has(tx *Transaction) bool {
 	}
 	return false
 }
+
+// PopTransactions 从交易池中弹出指定数量的交易
+func (pool *TxPool) PopTransactions(n int) []*Transaction {
+
+	if n > len(pool.Txs) {
+		// 交易池中交易不足
+		return nil
+	}
+
+	txs := pool.Txs[:n]
+	pool.Txs = pool.Txs[n:]
+
+	return txs
+}
+
+// RemoveTransactions 从交易池中移除指定的交易
+func (pool *TxPool) RemoveTransactions(txs []*Transaction) {
+
+	result := []*Transaction{}
+	for _, tx := range pool.Txs {
+		removed := false
+		for _, rmTx := range txs {
+			if tx == rmTx {
+				removed = true
+				break
+			}
+		}
+		if !removed {
+			result = append(result, tx)
+		}
+	}
+
+	pool.Txs = result
+}

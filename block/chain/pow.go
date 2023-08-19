@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
+	"math/big"
 	"math/rand"
 	"time"
 )
@@ -17,39 +19,66 @@ func (pow *POW) GenerateBlock(newBlock *Block) {
 	newBlock.Nonce = make([]byte, 8)
 	binary.BigEndian.PutUint64(newBlock.Nonce, uint64(nonce))
 
-	// 计算新的hash
-	newHash := CalcBlockHash(newBlock)
+	for {
+		// 在一定范围内调整nonce
+		nonce := nextNonce(newBlock.Nonce)
+		newBlock.Nonce = nonce
 
-	// 检查hash是否满足难度要求
-	if meetsDifficulty(newHash, newBlock.Difficulty) {
-		return
+		hash := CalcBlockHash(newBlock)
+
+		if meetsDifficulty(hash, newBlock.Difficulty) {
+			newBlock.Hash = hash
+			return
+		}
+		// 难度不能增长太快
+		newBlock.Difficulty = adjustDifficulty(newBlock.Difficulty)
 	}
+}
 
-	newBlock.Hash = newHash
-	// 难度递增
-	newBlock.Difficulty = newBlock.Difficulty + 1
+func nextNonce(nonce []byte) []byte {
+	// 将nonce解析为big.Int
+	n := new(big.Int).SetBytes(nonce)
+
+	// 在原nonce附近做一个小的调整
+	n = n.Add(n, big.NewInt(1))
+
+	// 转换回字节数组
+	return n.Bytes()
+}
+
+func adjustDifficulty(diff uint64) uint64 {
+	// 控制难度增长速度
+	return diff + 1
 }
 
 func (p *POW) VerifyBlock(block *Block) bool {
 	// 基本参数校验
 	if block.Version != CURRENT_BLOCK_VERSION {
+		fmt.Println("err version")
 		return false
 	}
 
 	if block.Timestamp > uint64(time.Now().Unix()) {
+		fmt.Println("err Timestamp")
 		return false
 	}
 
 	// 验证交易的合法性
 	for _, tx := range block.Transactions {
 		if !IsValidTransaction(tx) {
+			fmt.Println("err Transactions")
 			return false
 		}
 	}
 
 	// 验证区块Hash
 	blockHash := CalcBlockHash(block)
-	return bytes.Equal(blockHash, block.Hash)
+	result := bytes.Equal(blockHash, block.Hash)
+	if !result {
+		fmt.Println("err Hash,", blockHash)
+		fmt.Println("err Hash,", block.Hash)
+	}
+	return result
 }
 
 func meetsDifficulty(hash []byte, difficulty uint64) bool {
