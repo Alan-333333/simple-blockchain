@@ -46,7 +46,7 @@ func GetBlockchain() *Blockchain {
 }
 
 // 返回区块链中所有的区块
-func (bc *Blockchain) Blocks() []*Block {
+func (bc *Blockchain) GetBlocks() []*Block {
 	blocks := make([]*Block, len(bc.blocks))
 	copy(blocks, bc.blocks)
 

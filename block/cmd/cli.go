@@ -19,7 +19,7 @@ func printUsage() {
 }
 
 func printBlockchain(chain *blockchain.Blockchain) {
-	blocks := chain.Blocks()
+	blocks := chain.GetBlocks()
 	for _, block := range blocks {
 		printBlock(block)
 	}
