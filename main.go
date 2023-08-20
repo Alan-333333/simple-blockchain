@@ -191,8 +191,8 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 
 			// Add balance to wallet
 		case "addWalletBalance":
-			address := args.params[1]
-			amount := args.params[2]
+			address := args.params[0]
+			amount := args.params[1]
 			amountFloat, _ := strconv.ParseFloat(amount, 32)
 
 			// Get wallet
@@ -271,7 +271,7 @@ func parseToAddress(args Input) string {
 
 // parse amount from input
 func parseAmount(args Input) float64 {
-	amountStr := args.params[4]
+	amountStr := args.params[5]
 	amountFloat, _ := strconv.ParseFloat(amountStr, 32)
 	return amountFloat
 }
