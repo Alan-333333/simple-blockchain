@@ -114,37 +114,58 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 
 		switch args.command {
 
+		// Print block chain
 		case "printBlockChain":
 			printBlockchain(bc)
 
-		case "getblock":
+			// Print block by hash
+		case "printBlock":
+			// parse hash by args.params
 			hash := args.params[0]
+
+			// get block by hash
 			block := bc.GetBlock([]byte(hash))
+
+			// print block
 			printBlock(block)
 
+			// Create genesis block
 		case "createGenesisBlock":
-			// 1. 创建创世区块
+			// Create genesis block
 			genesisBlock := blockchain.CreateGenesisBlock()
-			// 6. 添加到区块链
+
+			// Add block to blockchain
 			err := bc.AddBlock(genesisBlock)
 			if err != nil {
 				fmt.Println(err)
 			}
+
+			// Save blockchain
 			bc.Save()
+
+			// Broadcast block
 			node.BroadcastBlock(genesisBlock)
 
-			fmt.Println("success")
+			// Print success message
+			printSuccess()
 
+			// Print node peers
 		case "printNodePeers":
-			fmt.Println("peers", node.Server.Peers)
+			fmt.Println("Peers:", node.Server.Peers)
 
+			// Create new wallet
 		case "createwallet":
+			// Create new wallet
 			wallet := wallet.NewWallet()
-			wallet.Save()
-			fmt.Println("peers", node.Server.Peers)
-			node.BroadcastWallet(wallet)
-			fmt.Println("success wallet address:", wallet.Address)
 
+			// Save updated wallet
+			wallet.Save()
+
+			// Broadcast updated wallet
+			node.BroadcastWallet(wallet)
+
+			// Print success message
+			fmt.Println("success wallet address:", wallet.Address)
 		case "nodeConnect":
 			ip := args.params[0]
 			portStr := args.params[1]
@@ -154,62 +175,100 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 
 			fmt.Println("success")
 
+			// Get wallet balance
 		case "getwalletbalance":
+			// Parse wallet address
 			address := args.params[0]
+			// Get balance
 			balance := wallet.GetAddressBalance(address)
+			// Print balance
 			fmt.Println("success wallet balance:", balance)
 
+			// Add balance to wallet
 		case "addwalletBalance":
 			address := args.params[1]
+			amount := args.params[2]
+			amountFloat, _ := strconv.ParseFloat(amount, 32)
 
-			amountStr := args.params[1]
-			amountFloat, _ := strconv.ParseFloat(amountStr, 32)
+			// Get wallet
 			wallet := wallet.GetwalletByAddress(address)
-			wallet.Balance += amountFloat
+			// Update balance
+			balance := wallet.Balance + amountFloat
+			wallet.UpdateWalletBalance(balance)
 
+			// Save updated wallet
 			wallet.Save()
+
+			// Broadcast updated wallet
 			node.BroadcastWallet(wallet)
-			fmt.Println("success")
 
+			// Print success message
+			printSuccess()
+
+			// Send transaction
 		case "send":
-			// 获取fromAddress参数值
-			fromAddress := args.params[1]
+			// Parse transaction parameters
+			fromAddress := parseFromAddress(args)
+			toAddress := parseToAddress(args)
+			amount := parseAmount(args)
 
-			// 获取toAddress参数值
-			toAddress := args.params[3]
+			// Get sender and recipient wallets
+			senderWallet := wallet.GetwalletByAddress(fromAddress)
+			recipientWallet := wallet.GetwalletByAddress(toAddress)
 
-			// 获取amount参数值
-			amountStr := args.params[4]
-			amountFloat, _ := strconv.ParseFloat(amountStr, 32)
+			// Create new transaction
+			tx := transaction.NewTransaction(senderWallet.Address, recipientWallet.Address, float32(amount))
 
-			walletFrom := wallet.GetwalletByAddress(fromAddress)
-			walletTo := wallet.GetwalletByAddress(toAddress)
+			// Sign the transaction
+			tx.Sign(senderWallet.PrivateKey)
 
-			// 构造交易
-			tx := transaction.NewTransaction(walletFrom.Address, walletTo.Address, float32(amountFloat))
-			// 3. 签名
-			tx.Sign(walletFrom.PrivateKey)
-
+			// Add transaction to transaction pool
 			txPool.AddTx(tx)
 
+			// Broadcast transaction to network
 			node.BroadcastTx(tx)
 
-			// 6. 更新余额
-			walletFrom.Balance -= amountFloat
-			walletTo.Balance += amountFloat
+			// Update wallet balances
+			senderWallet.Balance -= amount
+			recipientWallet.Balance += amount
 
-			walletFrom.Save()
-			walletTo.Save()
+			// Save updated wallets
+			senderWallet.Save()
+			recipientWallet.Save()
 
-			node.BroadcastWallet(walletFrom)
-			node.BroadcastWallet(walletTo)
+			// Broadcast updated wallets to network
+			node.BroadcastWallet(senderWallet)
+			node.BroadcastWallet(recipientWallet)
 
-			fmt.Println("success")
+			// Print success message
+			printSuccess()
 
 		default:
 			printUsage()
 		}
 	}
+}
+
+// print success
+func printSuccess() {
+	fmt.Println("success")
+}
+
+// parse from address from input
+func parseFromAddress(args Input) string {
+	return args.params[1]
+}
+
+// parse to address from input
+func parseToAddress(args Input) string {
+	return args.params[3]
+}
+
+// parse amount from input
+func parseAmount(args Input) float64 {
+	amountStr := args.params[4]
+	amountFloat, _ := strconv.ParseFloat(amountStr, 32)
+	return amountFloat
 }
 
 // parseInput parses user input into command and parameters

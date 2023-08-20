@@ -66,6 +66,10 @@ func (wallet *Wallet) Save() error {
 
 }
 
+func (wallet *Wallet) UpdateWalletBalance(amount float64) {
+	wallet.Balance = amount
+}
+
 // 查询钱包
 func GetwalletByAddress(address string) *Wallet {
 
