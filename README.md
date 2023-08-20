@@ -114,6 +114,16 @@ getBalance 1JLfCguhUBui6MWQ4vNFgEktn87E9V6F8Q
 sendTransaction 1K4nFZNxmHRRwfM4E9S8SXPQcTcayxaeKj 1JLfCguhUBui6MWQ4vNFgEktn87E9V6F8Q 50
 ```
 
+
+## 本地存储
+
+该区块链将数据存储在本地的 dat 目录下,主要包含以下文件:
+
+* blockchain/chain.dat - 存储所有区块的数据
+* blockchain/genesis.blk - 创世区块
+* blockchain/meta.json - 区块链元数据
+* wallet/ - 存放钱包文件,每个钱包一个文件
+
 ## 贡献
 
 欢迎提 issue 和 PR 为项目作出贡献!
