@@ -56,14 +56,15 @@ go run main.go
 
 支持以下命令：
 
-- `printBlockchain` - 打印区块链中的所有块
-- `getBlock <hash>` - 打印块
+- `printBlockChain` - 打印区块链中的所有块
+- `printBlock <hash>` - 打印块
 - `createGenesisBlock` - 创建创世块
 - `createWallet` - 创建一个新的钱包
-- `getBalance <address>` - 获取钱包地址的余额
+- `getWalletBalance <address>` - 获取钱包地址的余额
+- `addWalletBalance <address> <amount>` - 向钱包添加余额
 - `sendTransaction <from> <to> <amount>` - 创建并发送交易
 - `connectNode <ip> <port>` - 连接到节点
-- `addWalletBalance <address> <amount>` - 向钱包添加余额
+
 
 ## 快速开始
 

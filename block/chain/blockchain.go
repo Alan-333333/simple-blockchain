@@ -160,10 +160,12 @@ func CreateBlock(bc *Blockchain, txs []*transaction.Transaction) *Block {
 }
 
 // 在区块链中根据hash获取区块
-func (bc *Blockchain) GetBlock(blockHash []byte) *Block {
+func (bc *Blockchain) GetBlock(blockHash string) *Block {
 
-	for _, block := range bc.blocks {
-		if bytes.Equal(block.Hash, blockHash) {
+	blocks := bc.GetBlocks()
+
+	for _, block := range blocks {
+		if fmt.Sprintf("%x", block.Hash) == blockHash {
 			return block
 		}
 	}

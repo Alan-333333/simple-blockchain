@@ -51,7 +51,7 @@ func main() {
 			os.Exit(1)
 		}
 		hash := os.Args[2]
-		block := bc.GetBlock([]byte(hash))
+		block := bc.GetBlock(hash)
 		printBlock(block)
 
 	case "createGenesisBlock":

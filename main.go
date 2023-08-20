@@ -26,8 +26,8 @@ func printUsage() {
 
 	// Print blockchain related commands
 	fmt.Println("Blockchain Commands:")
-	fmt.Println("  printBlockchain - Print all blocks in the blockchain")
-	fmt.Println("  getBlock [hash] - Print a specific block")
+	fmt.Println("  printBlockChain - Print all blocks in the blockchain")
+	fmt.Println("  printBlock [hash] - Print a specific block")
 	fmt.Println("  createGenesisBlock - Create the genesis block")
 
 	// Print wallet related commands
@@ -102,6 +102,13 @@ func printBlock(block *blockchain.Block) {
 	fmt.Printf("Block Hash: %x\n", block.Hash)
 
 	// Print other block data
+	fmt.Printf("Block Version: %v\n", block.Version)
+
+	fmt.Printf("Block PrevHash: %v\n", block.PrevHash)
+
+	fmt.Printf("Block Difficulty: %v\n", block.Difficulty)
+
+	fmt.Printf("Block Transactions: %v\n", block.Transactions)
 	// ...
 
 }
@@ -122,11 +129,9 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 		case "printBlock":
 			// parse hash by args.params
 			hash := args.params[0]
-
 			// get block by hash
-			block := bc.GetBlock([]byte(hash))
+			block := bc.GetBlock(hash)
 
-			// print block
 			printBlock(block)
 
 			// Create genesis block
@@ -154,7 +159,7 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 			fmt.Println("Peers:", node.Server.Peers)
 
 			// Create new wallet
-		case "createwallet":
+		case "createWallet":
 			// Create new wallet
 			wallet := wallet.NewWallet()
 
@@ -166,7 +171,7 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 
 			// Print success message
 			fmt.Println("success wallet address:", wallet.Address)
-		case "nodeConnect":
+		case "connectNode":
 			ip := args.params[0]
 			portStr := args.params[1]
 
@@ -176,7 +181,7 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 			fmt.Println("success")
 
 			// Get wallet balance
-		case "getwalletbalance":
+		case "getWalletBalance":
 			// Parse wallet address
 			address := args.params[0]
 			// Get balance
@@ -185,7 +190,7 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 			fmt.Println("success wallet balance:", balance)
 
 			// Add balance to wallet
-		case "addwalletBalance":
+		case "addWalletBalance":
 			address := args.params[1]
 			amount := args.params[2]
 			amountFloat, _ := strconv.ParseFloat(amount, 32)
@@ -206,7 +211,7 @@ func startCLI(bc *blockchain.Blockchain, txPool *transaction.TxPool, node *p2p.N
 			printSuccess()
 
 			// Send transaction
-		case "send":
+		case "sendTransaction":
 			// Parse transaction parameters
 			fromAddress := parseFromAddress(args)
 			toAddress := parseToAddress(args)
